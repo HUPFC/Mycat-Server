@@ -81,15 +81,19 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     public void prepare(String sql) {
     	
     	LOGGER.debug("use server prepare, sql: " + sql);
+		LOGGER.info("prepare start current pstmtForSql is "+pstmtForSql);
         PreparedStatement pstmt = null;
         if ((pstmt = pstmtForSql.get(sql)) == null) {
+			LOGGER.info("prepare pstmt is null");
         	// 解析获取字段个数和参数个数
         	int columnCount = getColumnCount(sql);
         	int paramCount = getParamCount(sql);
             pstmt = new PreparedStatement(++pstmtId, sql, columnCount, paramCount);
             pstmtForSql.put(pstmt.getStatement(), pstmt);
             pstmtForId.put(pstmt.getId(), pstmt);
-        }
+        }else{
+			LOGGER.info("prepare pstmt is not null");
+		}
         PreparedStmtResponse.response(pstmt, source);
     }
     
@@ -133,7 +137,9 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     public void execute(byte[] data) {
         long pstmtId = ByteUtil.readUB4(data, 5);
         PreparedStatement pstmt = null;
+		LOGGER.info("check pstmt now pstmtId is "+ pstmtId+",pstmtForId is  " + pstmtForId.toString() + "pstmtForSql is "+pstmtForSql.toString());
         if ((pstmt = pstmtForId.get(pstmtId)) == null) {
+			LOGGER.error("Unknown pstmtId when executing,pstmt is null , pstmtId is "+pstmtId );
             source.writeErrMessage(ErrorCode.ER_ERROR_WHEN_EXECUTING_COMMAND, "Unknown pstmtId when executing.");
         } else {
             ExecutePacket packet = new ExecutePacket(pstmt);
@@ -166,6 +172,8 @@ public class ServerPrepareHandler implements FrontendPrepareHandler {
     	if(pstmt != null) {
     		pstmtForSql.remove(pstmt.getStatement());
     	}
+		LOGGER.info("close prepare end pstmtForId is "+pstmtForId.toString());
+		LOGGER.info("close prepare end pstmtForSql is "+pstmtForSql.toString());
     }
     
     @Override
